@@ -5,7 +5,7 @@ from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, Fil
 app = Flask(__name__)
 
 TOKEN = "8221663079:AAHR01BGwId6N4aL8HYu7yUwBK4n6eJ8Fng"
-URL = "https://my-telegram-bot.onrender.com/webhook"  # Render URL
+URL = "https://my-telegram-bot-f59e.onrender.com"  # Render URL
 
 # Flask route to handle webhook
 @app.route("/webhook", methods=["POST"])
