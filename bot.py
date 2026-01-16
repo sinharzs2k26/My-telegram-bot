@@ -33,4 +33,5 @@ def webhook():
 
 # Flask app চালানো (Render server)
 if __name__ == "__main__":
-    app.run(host='0.0.0.0', port=443, ssl_context=('cert.pem', 'key.pem'))  # SSL সার্টিফিকেট প্রয়োজন
+    # SSL ছাড়াই run করব
+    app.run(host='0.0.0.0', port=443)
