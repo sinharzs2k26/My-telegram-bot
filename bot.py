@@ -8,7 +8,7 @@ app = Flask(__name__)
 
 # Telegram API Token
 TOKEN = "8221663079:AAHR01BGwId6N4aL8HYu7yUwBK4n6eJ8Fng"
-WEBHOOK_URL = "https://my-telegram-bot-enl0.onrender.com"  # Render URL
+WEBHOOK_URL = "https://my-telegram-bot-enl0.onrender.com/webhook"  # Render URL
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text("হ্যালো! আমি Webhook দিয়ে কাজ করছি!")
