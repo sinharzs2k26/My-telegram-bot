@@ -4,7 +4,7 @@ from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, Fil
 
 app = Flask(__name__)
 
-TOKEN = "তোর API Token"
+TOKEN = "8221663079:AAHR01BGwId6N4aL8HYu7yUwBK4n6eJ8Fng"
 URL = "https://my-telegram-bot.onrender.com/webhook"  # Render URL
 
 # Flask route to handle webhook
