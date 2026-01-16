@@ -1,11 +1,11 @@
 from flask import Flask, request
 from telegram import Update
-from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, Filters
+from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, filters
 
 app = Flask(__name__)
 
 TOKEN = "8221663079:AAHR01BGwId6N4aL8HYu7yUwBK4n6eJ8Fng"
-URL = "https://my-telegram-bot-f59e.onrender.com"  # Render URL
+URL = "https://my-telegram-bot-enl0.onrender.com/webhook"  # Render URL
 
 # Flask route to handle webhook
 @app.route("/webhook", methods=["POST"])
