@@ -191,7 +191,7 @@ MIT License - see LICENSE file.
 
 ```
 
-## **Key Fixes I Made:**
+**Key Fixes I Made:**
 
 1. **Used `<p align="center">` with `<img>` tags** - HTML works in GitHub README
 2. **Simplified badge URLs** - No complex query parameters
