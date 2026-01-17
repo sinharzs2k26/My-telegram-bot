@@ -1,4 +1,3 @@
-```markdown
 <p align="center">
   <img src="https://img.shields.io/badge/Python-3.11-blue" alt="Python">
   <img src="https://img.shields.io/badge/Telegram-Bot-blue" alt="Telegram">
