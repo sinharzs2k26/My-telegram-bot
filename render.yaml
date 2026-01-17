@@ -20,6 +20,6 @@ services:
         fromService:
           type: web
           name: telegram-bot
-          property: url
+          property: port
     healthCheckPath: /health
     autoDeploy: true
