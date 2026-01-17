@@ -4,7 +4,7 @@ from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, fil
 TOKEN = "7786701907:AAEj2FwZnCfhYUQzm2BF65-IPmRaGsJVnRs"
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text("হ্যালো 😄 আমি alive! (Bot by Saikat)"
+    await update.message.reply_text("হ্যালো 😄 আমি alive! (Bot by Saikat)")
 
 async def echo(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(update.message.text)
