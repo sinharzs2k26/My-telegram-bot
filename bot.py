@@ -1,10 +1,10 @@
 from telegram import Update
 from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, filters, ContextTypes
 
-TOKEN = "8221663079:AAHR01BGwId6N4aL8HYu7yUwBK4n6eJ8Fng"
+TOKEN = "7786701907:AAEj2FwZnCfhYUQzm2BF65-IPmRaGsJVnRs"
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text("হ্যালো 😄 আমি alive!")
+    await update.message.reply_text("হ্যালো 😄 আমি alive! (Bot by Saikat)"
 
 async def echo(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(update.message.text)
