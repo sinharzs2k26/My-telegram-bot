@@ -23,8 +23,8 @@ telegram_app = ApplicationBuilder().token(TOKEN).build()
 telegram_app.add_handler(CommandHandler("start", start))
 telegram_app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, echo))
 
-# Webhook সেট করা
-@app.route("/webhook", methods=["POST"])
+# Webhook set করার জন্য POST method দিয়ে route তৈরি করা
+@app.route("/webhook", methods=["POST"])  # Make sure to accept POST method
 def webhook():
     if request.method == "POST":
         update = Update.de_json(request.get_json(), telegram_app.bot)
