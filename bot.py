@@ -1,345 +1,391 @@
 import os
-import json
 import logging
-import threading
-import time
-import asyncio
+import datetime
+import random
 import requests
-from flask import Flask, request, jsonify
-from telegram import Update, BotCommand
+from flask import Flask, request
+from telegram import Update, ReplyKeyboardMarkup, KeyboardButton
 from telegram.ext import Application, CommandHandler, MessageHandler, filters, ContextTypes
 
 # ==================== SETUP ====================
 app = Flask(__name__)
 
-# Configure logging
+# Enable logging
 logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
     level=logging.INFO
 )
 logger = logging.getLogger(__name__)
 
-# Global bot instance
+# Bot token from environment
 TOKEN = os.environ.get('TELEGRAM_TOKEN')
-bot_application = None
+if not TOKEN:
+    logger.error("❌ TELEGRAM_TOKEN not found in environment variables!")
+    raise ValueError("Please set TELEGRAM_TOKEN environment variable")
 
-# ==================== BOT INITIALIZATION ====================
+# Initialize bot
+application = Application.builder().token(TOKEN).build()
 
-def initialize_bot():
-    """Initialize the Telegram bot application"""
-    global bot_application
+# ==================== COMMAND HANDLERS ====================
+
+async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Send welcome message when /start is issued"""
+    user = update.effective_user
     
-    if not TOKEN:
-        logger.error("❌ TELEGRAM_TOKEN environment variable is not set!")
-        logger.error("Please set it in Render dashboard: Environment → Add TELEGRAM_TOKEN")
-        return None
-    
-    try:
-        logger.info("🔄 Initializing Telegram bot...")
-        
-        # Create bot application
-        bot_application = Application.builder().token(TOKEN).build()
-        
-        # Add command handlers
-        async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-            await update.message.reply_text("🚀 Bot is online! Type /help for commands.")
-        
-        async def help_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
-            help_text = """
-🤖 *Available Commands:*
-/start - Start the bot
-/help - Show this help
-/ping - Check if bot is alive
+    welcome_text = f"""
+👋 Hello {user.first_name}!
+
+🤖 I'm your 24/7 Telegram bot hosted on Render!
+
+📋 Available commands:
+/start - Welcome message
+/help - Show all commands
+/ping - Check if I'm alive
 /time - Current server time
+/weather - Get weather info
 /joke - Get a random joke
-            """
-            await update.message.reply_text(help_text, parse_mode='Markdown')
-        
-        async def ping(update: Update, context: ContextTypes.DEFAULT_TYPE):
-            await update.message.reply_text("🏓 Pong! I'm running on Render 24/7!")
-        
-        async def get_time(update: Update, context: ContextTypes.DEFAULT_TYPE):
-            from datetime import datetime
-            current_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S UTC")
-            await update.message.reply_text(f"🕐 Server time: {current_time}")
-        
-        async def joke(update: Update, context: ContextTypes.DEFAULT_TYPE):
-            import random
-            jokes = [
-                "Why don't scientists trust atoms? Because they make up everything!",
-                "Why did the scarecrow win an award? He was outstanding in his field!"
-            ]
-            await update.message.reply_text(f"😂 {random.choice(jokes)}")
-        
-        # Register handlers
-        bot_application.add_handler(CommandHandler("start", start))
-        bot_application.add_handler(CommandHandler("help", help_cmd))
-        bot_application.add_handler(CommandHandler("ping", ping))
-        bot_application.add_handler(CommandHandler("time", get_time))
-        bot_application.add_handler(CommandHandler("joke", joke))
-        
-        # Initialize the application (THIS IS CRITICAL!)
-        # We'll initialize it properly in a separate thread
-        logger.info("✅ Bot handlers registered")
-        
-        return bot_application
-        
-    except Exception as e:
-        logger.error(f"❌ Failed to initialize bot: {e}", exc_info=True)
-        return None
+/cat - Get a random cat picture
+/dog - Get a random dog picture
+/quote - Inspirational quote
+/roll - Roll a dice (1-6)
+/flip - Flip a coin
+/echo [text] - Echo your text
+/about - About this bot
 
-# Initialize bot on import
-bot_application = initialize_bot()
+💡 Just send me any message and I'll respond!
+    """
+    
+    # Create keyboard buttons
+    keyboard = [
+        [KeyboardButton("/help"), KeyboardButton("/time")],
+        [KeyboardButton("/joke"), KeyboardButton("/cat")],
+        [KeyboardButton("/weather"), KeyboardButton("/quote")]
+    ]
+    reply_markup = ReplyKeyboardMarkup(keyboard, resize_keyboard=True)
+    
+    await update.message.reply_text(welcome_text, reply_markup=reply_markup)
+    logger.info(f"User {user.id} started the bot")
+
+async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Send help message"""
+    help_text = """
+📚 *Available Commands:*
+
+*Basic Commands:*
+/start - Welcome message
+/help - Show this help
+/ping - Check bot status
+/time - Current server time
+/about - Bot information
+
+*Fun Commands:*
+/joke - Get a random joke
+/cat - Random cat picture 🐱
+/dog - Random dog picture 🐶
+/quote - Inspirational quote
+/roll - Roll a dice (1-6)
+/flip - Flip a coin
+/random [min] [max] - Random number
+
+*Utility Commands:*
+/weather [city] - Weather information
+/echo [text] - Repeat your text
+/calc [expression] - Simple calculation
+
+💡 *Tip:* You can just send me normal messages too!
+    """
+    await update.message.reply_text(help_text, parse_mode='Markdown')
+    logger.info(f"Help requested by {update.effective_user.id}")
+
+async def ping(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Check if bot is responsive"""
+    await update.message.reply_text("🏓 Pong! I'm alive and running on Render! ⚡")
+    logger.info("Ping received")
+
+async def time_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Send current server time"""
+    current_time = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S UTC")
+    await update.message.reply_text(f"🕐 Server time: {current_time}")
+    logger.info(f"Time requested: {current_time}")
+
+async def joke(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Send a random joke"""
+    jokes = [
+        "Why don't scientists trust atoms? Because they make up everything!",
+        "Why did the scarecrow win an award? He was outstanding in his field!",
+        "What do you call a fish wearing a bowtie? Sofishticated!",
+        "Why did the math book look sad? Because it had too many problems.",
+        "What do you call a sleeping bull? A bulldozer!",
+        "Why don't eggs tell jokes? They'd crack each other up!",
+        "What do you call a bear with no teeth? A gummy bear!",
+        "Why did the bicycle fall over? Because it was two-tired!"
+    ]
+    joke = random.choice(jokes)
+    await update.message.reply_text(f"😂 {joke}")
+
+async def cat(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Send random cat picture"""
+    try:
+        # Using TheCatAPI
+        response = requests.get("https://api.thecatapi.com/v1/images/search")
+        if response.status_code == 200:
+            cat_url = response.json()[0]['url']
+            await update.message.reply_photo(photo=cat_url, caption="🐱 Here's a cute cat for you!")
+        else:
+            await update.message.reply_text("😿 Couldn't fetch cat picture, try again later!")
+    except:
+        await update.message.reply_text("😿 Cat API is sleeping!")
+
+async def dog(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Send random dog picture"""
+    try:
+        response = requests.get("https://dog.ceo/api/breeds/image/random")
+        if response.status_code == 200:
+            dog_url = response.json()['message']
+            await update.message.reply_photo(photo=dog_url, caption="🐶 Here's a good doggo!")
+        else:
+            await update.message.reply_text("🐕 Couldn't fetch dog picture!")
+    except:
+        await update.message.reply_text("🐕 Dog API is busy!")
+
+async def quote(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Send inspirational quote"""
+    quotes = [
+        "The only way to do great work is to love what you do. - Steve Jobs",
+        "Innovation distinguishes between a leader and a follower. - Steve Jobs",
+        "The future belongs to those who believe in the beauty of their dreams. - Eleanor Roosevelt",
+        "Strive not to be a success, but rather to be of value. - Albert Einstein",
+        "The only thing we have to fear is fear itself. - Franklin D. Roosevelt",
+        "Life is what happens to you while you're busy making other plans. - John Lennon",
+        "The way to get started is to quit talking and begin doing. - Walt Disney",
+        "Your time is limited, don't waste it living someone else's life. - Steve Jobs"
+    ]
+    quote = random.choice(quotes)
+    await update.message.reply_text(f"💭 {quote}")
+
+async def roll(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Roll a dice"""
+    result = random.randint(1, 6)
+    await update.message.reply_text(f"🎲 You rolled a {result}!")
+
+async def flip(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Flip a coin"""
+    result = random.choice(["Heads", "Tails"])
+    await update.message.reply_text(f"🪙 It's {result}!")
+
+async def random_number(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Generate random number"""
+    try:
+        if context.args:
+            if len(context.args) == 1:
+                max_num = int(context.args[0])
+                min_num = 1
+            else:
+                min_num = int(context.args[0])
+                max_num = int(context.args[1])
+            result = random.randint(min_num, max_num)
+            await update.message.reply_text(f"🎯 Random number between {min_num} and {max_num}: *{result}*", 
+                                          parse_mode='Markdown')
+        else:
+            await update.message.reply_text("Usage: /random [min] [max] or /random [max]")
+    except:
+        await update.message.reply_text("Please use numbers like: /random 1 100")
+
+async def weather(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Get weather information"""
+    if context.args:
+        city = ' '.join(context.args)
+        await update.message.reply_text(f"🌤️ Weather for {city}: Feature coming soon!\n(Would use OpenWeatherMap API)")
+    else:
+        await update.message.reply_text("Please specify a city: /weather London")
+
+async def echo(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Echo the user's message"""
+    if context.args:
+        text = ' '.join(context.args)
+        await update.message.reply_text(f"📢 You said: {text}")
+    else:
+        await update.message.reply_text("Usage: /echo [your text here]")
+
+async def about(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Show about information"""
+    about_text = """
+🤖 *About This Bot*
+
+*Hosting:* Render.com (Free Tier)
+*Uptime:* 24/7 with keep-alive
+*Framework:* python-telegram-bot
+*Features:* Multiple commands, webhook based
+
+*Developer:* You! 🎉
+*Status:* 🟢 Online and responsive
+
+This bot demonstrates how to host a Telegram bot for free with full functionality!
+    """
+    await update.message.reply_text(about_text, parse_mode='Markdown')
+
+async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Handle all text messages that are not commands"""
+    user_message = update.message.text.lower()
+    user = update.effective_user
+    
+    logger.info(f"Message from {user.id}: {user_message}")
+    
+    # Simple AI-like responses
+    responses = {
+        'hello': f"Hi {user.first_name}! 👋 How can I help you today?",
+        'hi': f"Hello {user.first_name}! 😊",
+        'how are you': "I'm doing great, thanks for asking! Running smoothly on Render! ⚡",
+        'thanks': "You're welcome! 😊",
+        'thank you': "Anytime! 👍",
+        'bye': "Goodbye! Have a great day! 👋",
+        'good morning': f"Good morning {user.first_name}! 🌅",
+        'good night': "Good night! Sleep well! 🌙",
+        'what is your name': "I'm your friendly Telegram bot hosted on Render! 🤖",
+        'what can you do': "Type /help to see all my commands! 📋",
+        'who made you': "You created me! I'm your bot running on Render! 🎉",
+        'render': "Yes! I'm hosted for FREE on Render.com! 🚀",
+        'python': "I'm built with Python and python-telegram-bot library! 🐍",
+        'telegram': "Telegram is awesome for building bots! 💪",
+    }
+    
+    # Check if message matches any predefined responses
+    for keyword, response in responses.items():
+        if keyword in user_message:
+            await update.message.reply_text(response)
+            return
+    
+    # Default response for unknown messages
+    default_responses = [
+        f"Interesting message, {user.first_name}! Try /help for commands.",
+        f"I received: '{user_message}' - Need help? Type /help",
+        f"Thanks for the message! Want to see what I can do? Type /help",
+        f"Got it! Check out /help for all my features!",
+    ]
+    
+    await update.message.reply_text(random.choice(default_responses))
+
+# ==================== REGISTER HANDLERS ====================
+
+# Command handlers
+application.add_handler(CommandHandler("start", start))
+application.add_handler(CommandHandler("help", help_command))
+application.add_handler(CommandHandler("ping", ping))
+application.add_handler(CommandHandler("time", time_command))
+application.add_handler(CommandHandler("joke", joke))
+application.add_handler(CommandHandler("cat", cat))
+application.add_handler(CommandHandler("dog", dog))
+application.add_handler(CommandHandler("quote", quote))
+application.add_handler(CommandHandler("roll", roll))
+application.add_handler(CommandHandler("flip", flip))
+application.add_handler(CommandHandler("random", random_number))
+application.add_handler(CommandHandler("weather", weather))
+application.add_handler(CommandHandler("echo", echo))
+application.add_handler(CommandHandler("about", about))
+
+# Message handler (for non-command messages)
+application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
 
 # ==================== FLASK ROUTES ====================
 
 @app.route('/')
 def home():
     """Home page"""
-    bot_status = "✅ Online" if bot_application else "❌ Offline (Token not set)"
-    return f"""
-    <!DOCTYPE html>
-    <html>
-    <head>
-        <title>🤖 Telegram Bot</title>
-        <style>
-            body {{ font-family: Arial, sans-serif; margin: 40px; }}
-            .status {{ padding: 10px; background: #f0f0f0; border-radius: 5px; }}
-            .success {{ color: green; font-weight: bold; }}
-            .error {{ color: red; font-weight: bold; }}
-        </style>
-    </head>
-    <body>
-        <h1>🤖 Telegram Bot Dashboard</h1>
-        <div class="status">
-            <p><strong>Status:</strong> <span class="{'success' if bot_application else 'error'}">{bot_status}</span></p>
-            <p><strong>Server:</strong> Render.com</p>
-            <p><strong>URL:</strong> {request.host_url}</p>
-        </div>
-        <h3>Quick Actions:</h3>
-        <ul>
-            <li><a href="/set_webhook">🔗 Set Webhook</a> (Do this first!)</li>
-            <li><a href="/health">❤️ Health Check</a></li>
-            <li><a href="/test">🧪 Test Bot</a></li>
-            <li><a href="/logs">📋 View Recent Logs</a></li>
-        </ul>
-        <p>After setting webhook, send <code>/start</code> to your bot on Telegram.</p>
-    </body>
-    </html>
+    return """
+    <h1>🤖 Telegram Bot Dashboard</h1>
+    <p>Your bot is running on Render!</p>
+    <p><a href="/set_webhook">📱 Set Webhook</a></p>
+    <p><a href="/health">🩺 Health Check</a></p>
+    <p><a href="/status">📊 Status</a></p>
     """
 
 @app.route('/health')
 def health():
     """Health check endpoint"""
-    if bot_application:
-        return jsonify({
-            "status": "healthy",
-            "bot": "initialized",
-            "server": "Render",
-            "timestamp": time.time()
-        }), 200
-    else:
-        return jsonify({
-            "status": "unhealthy",
-            "error": "Bot not initialized",
-            "fix": "Check TELEGRAM_TOKEN environment variable"
-        }), 500
+    return 'OK', 200
+
+@app.route('/status')
+def status():
+    """Bot status page"""
+    import psutil
+    memory = psutil.virtual_memory()
+    
+    return f"""
+    <h2>🤖 Bot Status</h2>
+    <p><strong>Status:</strong> 🟢 Online</p>
+    <p><strong>Memory Usage:</strong> {memory.percent}%</p>
+    <p><strong>Platform:</strong> Render.com</p>
+    <p><strong>Commands Available:</strong> 15+</p>
+    <p><a href="/">Home</a> | <a href="/set_webhook">Fix Webhook</a></p>
+    """
 
 @app.route('/set_webhook', methods=['GET'])
-def set_webhook():
-    """Set webhook endpoint - NO ASYNC HERE!"""
+async def set_webhook():
+    """Set webhook to current URL"""
+    import asyncio
+    
+    current_url = request.host_url.rstrip('/')
+    webhook_url = f"{current_url}/webhook"
+    
     try:
-        if not bot_application:
-            return "❌ Bot not initialized. Check TELEGRAM_TOKEN.", 500
-        
-        current_url = request.host_url.rstrip('/')
-        webhook_url = f"{current_url}/webhook"
-        
-        # Set webhook using async in a separate thread
-        async def set_webhook_async():
-            try:
-                await bot_application.initialize()
-                await bot_application.start()
-                await bot_application.bot.set_webhook(webhook_url)
-                
-                # Set bot commands
-                commands = [
-                    BotCommand("start", "Start the bot"),
-                    BotCommand("help", "Show help message"),
-                    BotCommand("ping", "Check if bot is alive"),
-                    BotCommand("time", "Get server time"),
-                    BotCommand("joke", "Get a random joke"),
-                ]
-                await bot_application.bot.set_my_commands(commands)
-                
-                return True, "✅ Webhook and commands set successfully!"
-            except Exception as e:
-                return False, f"❌ Error: {str(e)}"
-        
-        # Run async function synchronously
-        loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(loop)
-        success, message = loop.run_until_complete(set_webhook_async())
-        loop.close()
-        
-        if success:
-            return f"""
-            <h2>✅ Success!</h2>
-            <p><strong>Webhook URL:</strong> {webhook_url}</p>
-            <p><strong>Status:</strong> {message}</p>
-            <p><strong>Next:</strong> Send <code>/start</code> to your bot on Telegram!</p>
-            <p><a href="/">← Back to Dashboard</a></p>
-            """
-        else:
-            return f"<h2>❌ Failed</h2><p>{message}</p>"
-            
+        await application.bot.set_webhook(webhook_url)
+        return f"""
+        <h2>✅ Webhook Updated!</h2>
+        <p><strong>New URL:</strong> {webhook_url}</p>
+        <p><strong>Status:</strong> Webhook is now active!</p>
+        <p><strong>Next Step:</strong> Send /start to your bot on Telegram!</p>
+        <p><a href="/">Back to Home</a></p>
+        """
     except Exception as e:
-        logger.error(f"Error in set_webhook: {e}", exc_info=True)
-        return f"<h2>❌ Error</h2><pre>{str(e)}</pre>", 500
+        return f"❌ Error setting webhook: {e}"
 
 @app.route('/webhook', methods=['POST'])
 def webhook():
-    """Handle Telegram webhook - BULLETPROOF VERSION"""
-    try:
-        if not bot_application:
-            logger.error("Bot application not initialized")
-            return "Bot not initialized", 500
-        
-        # Parse the update
-        update_data = request.get_json(force=True)
-        logger.info(f"📨 Received update: {update_data.get('update_id')}")
-        
-        # Create update object
-        update = Update.de_json(update_data, bot_application.bot)
-        
-        # Process update in background thread
-        def process_update_in_thread(update_obj):
-            """Process update in a separate thread with its own event loop"""
-            try:
-                # Create new event loop for this thread
-                loop = asyncio.new_event_loop()
-                asyncio.set_event_loop(loop)
-                
-                # Ensure bot is initialized
-                if not bot_application.running:
-                    loop.run_until_complete(bot_application.initialize())
-                    loop.run_until_complete(bot_application.start())
-                
-                # Process the update
-                loop.run_until_complete(bot_application.process_update(update_obj))
-                
-                loop.run_until_complete(bot_application.stop())
-                loop.close()
-                
-                logger.info(f"✅ Processed update {update_obj.update_id}")
-                
-            except Exception as e:
-                logger.error(f"❌ Error processing update: {e}", exc_info=True)
-        
-        # Start processing in background thread
-        import threading
-        thread = threading.Thread(target=process_update_in_thread, args=(update,))
-        thread.daemon = True
-        thread.start()
-        
-        return 'OK', 200
-        
-    except Exception as e:
-        logger.error(f"❌ Webhook error: {e}", exc_info=True)
-        return 'ERROR', 500
+    """Receive updates from Telegram"""
+    update = Update.de_json(request.get_json(force=True), application.bot)
+    
+    # Process update asynchronously
+    async def process():
+        await application.process_update(update)
+    
+    import asyncio
+    asyncio.run(process())
+    
+    return 'OK', 200
 
-@app.route('/test')
-def test_bot():
-    """Test endpoint to send a message"""
-    try:
-        # Get your chat ID from environment or use a default
-        test_chat_id = os.environ.get('TEST_CHAT_ID', '')
-        
-        if test_chat_id:
-            # Send test message
-            test_url = f"https://api.telegram.org/bot{TOKEN}/sendMessage"
-            response = requests.post(test_url, json={
-                'chat_id': test_chat_id,
-                'text': '🔧 Test message from bot server!'
-            })
-            return f"Test message sent: {response.json()}"
-        else:
-            return """
-            <h2>Test Bot</h2>
-            <p>To test, set TEST_CHAT_ID environment variable with your Telegram chat ID.</p>
-            <p>Get your chat ID from @userinfobot on Telegram.</p>
-            """
-    except Exception as e:
-        return f"Test failed: {str(e)}"
-
-@app.route('/logs')
-def show_logs():
-    """Show recent logs"""
-    import io
-    import traceback
-    
-    log_capture_string = io.StringIO()
-    ch = logging.StreamHandler(log_capture_string)
-    ch.setLevel(logging.INFO)
-    
-    # Create formatter and add it to the handler
-    formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
-    ch.setFormatter(formatter)
-    
-    # Add handler to the logger
-    logger.addHandler(ch)
-    
-    # Get logs
-    log_contents = log_capture_string.getvalue()
-    log_capture_string.close()
-    logger.removeHandler(ch)
-    
-    return f"""
-    <h2>Recent Logs</h2>
-    <pre style="background: #f5f5f5; padding: 15px; border-radius: 5px; overflow: auto;">
-{log_contents if log_contents else 'No recent logs...'}
-    </pre>
-    <p><a href="/">← Back</a></p>
-    """
-
-# ==================== KEEP-ALIVE SYSTEM ====================
+# ==================== KEEP-ALIVE ====================
 
 def start_keep_alive():
-    """Keep Render from sleeping"""
+    """Background thread to keep Render from sleeping"""
+    import threading
+    import time
+    
     def ping_server():
         while True:
             try:
-                url = os.environ.get('RENDER_EXTERNAL_URL', request.host_url.rstrip('/') if 'request' in locals() else '')
-                if not url:
-                    url = f"http://localhost:{os.environ.get('PORT', 10000)}"
-                
-                response = requests.get(f"{url}/health", timeout=10)
-                logger.info(f"🔄 Keep-alive ping: {response.status_code}")
-            except Exception as e:
-                logger.warning(f"Keep-alive failed: {e}")
-            
-            time.sleep(240)  # Ping every 4 minutes
+                url = request.host_url.rstrip('/') if 'request' in locals() else os.environ.get('RENDER_EXTERNAL_URL', '')
+                if url:
+                    requests.get(f"{url}/health", timeout=5)
+                    logger.info(f"Keep-alive ping sent at {datetime.datetime.now().strftime('%H:%M:%S')}")
+            except:
+                logger.warning("Keep-alive ping failed")
+            time.sleep(240)  # 4 minutes
     
-    # Start in background thread
     thread = threading.Thread(target=ping_server, daemon=True)
     thread.start()
-    logger.info("🚀 Keep-alive system started")
+    logger.info("Keep-alive thread started")
 
 # ==================== STARTUP ====================
 
 if __name__ == '__main__':
-    # Start keep-alive
+    # Start keep-alive in background
     start_keep_alive()
     
-    # Log startup info
-    logger.info("=" * 50)
-    logger.info("🤖 Telegram Bot Server Starting Up")
-    logger.info(f"🔑 Token set: {'Yes' if TOKEN else 'No'}")
-    logger.info(f"🤖 Bot initialized: {'Yes' if bot_application else 'No'}")
-    logger.info(f"🌐 Server URL: {os.environ.get('RENDER_EXTERNAL_URL', 'Local')}")
-    logger.info("=" * 50)
+    # Initialize bot (for polling - alternative to webhook)
+    # application.run_polling()  # Don't use this with webhooks!
     
     # Start Flask server
     port = int(os.environ.get('PORT', 10000))
-    logger.info(f"🚀 Starting Flask server on port {port}")
-    app.run(host='0.0.0.0', port=port, debug=False)
+    logger.info(f"🚀 Starting bot server on port {port}")
+    logger.info(f"🤖 Bot username: @{application.bot.username}")
+    app.run(host='0.0.0.0', port=port)
