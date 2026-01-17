@@ -1,6 +1,3 @@
 # 🤖 Feature-Rich Telegram Bot
 
-## 📖 HTML Version
-[View HTML Documentation](README.html)
-
-## Quick Start...
+**Click here to see details of this repository: sinharzs2k26.github.io/My-telegram-bot**
