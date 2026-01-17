@@ -1,9 +1,4 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🤖 Feature-Rich Telegram Bot (24/7 Free Hosting)</title>
+<title>🤖 Feature-Rich Telegram Bot (24/7 Free Hosting)</title>
     <style>
         * {
             margin: 0;
@@ -486,6 +481,3 @@ git push -u origin main<br>
             <i class="fab fa-telegram"></i> Telegram •
             <i class="fas fa-server"></i> Render.com
         </p>
-    </footer>
-</body>
-</html>
