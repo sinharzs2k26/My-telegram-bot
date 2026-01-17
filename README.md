@@ -189,8 +189,6 @@ MIT License - see LICENSE file.
 
 ⭐ If you find this useful, please star the repo!
 
-```
-
 **Key Fixes I Made:**
 
 1. **Used `<p align="center">` with `<img>` tags** - HTML works in GitHub README
